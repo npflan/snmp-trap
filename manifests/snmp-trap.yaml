@@ -1,0 +1,52 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: snmp-trap
+  namespace: loki
+  labels:
+    app: snmp-trap
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: snmp-trap
+      labels:
+        app: snmp-trap
+    spec:
+      containers:
+      - name: snmp-trap
+        image: registry.npf.dk/snmp-trap:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 162
+          protocol: UDP
+          name: snmp
+        resources:
+          requests:
+            cpu: "1"
+            memory: 1000M
+          limits:
+            cpu: "1"
+            memory: 2000M
+      nodeSelector:
+        kubernetes.io/hostname: brigitte  
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations: {}
+  labels:
+    app: snmp-trap
+  name: snmp-trap
+  namespace: loki
+spec:
+  externalTrafficPolicy: Local
+  clusterIP: 10.97.10.12
+  type: NodePort
+  ports:
+  - name: 
+    port: 162
+    nodePort: 31652
+    protocol: UDP
+  selector:
+    app: snmp-trap
