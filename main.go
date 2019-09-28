@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
+	"path"
+	"path/filepath"
 	"syscall"
 
 	"go.uber.org/zap"
@@ -18,13 +19,89 @@ type SnmpService struct {
 	logger *zap.Logger
 }
 
+func (s *SnmpService) getSubtree(oidString string) ([]gosmi.SmiNode, error) {
+	oid, err := types.OidFromString(oidString)
+
+	if err != nil {
+		s.logger.Error(
+			"Failed to get OID from octet variable name",
+			zap.Error(err),
+		)
+		return nil, err
+	}
+
+	node, err := gosmi.GetNodeByOID(oid)
+	if err != nil {
+		s.logger.Error(
+			"Failed to get smnp node by OID",
+			zap.Error(err),
+		)
+		return nil, err
+	}
+	return node.GetSubtree(), nil
+}
+
+func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) {
+	var logFieldsMap = make(map[string]*string)
+	var logFields []zap.Field
+	for _, v := range packet.Variables {
+		switch v.Type {
+		case snmp.ObjectIdentifier:
+			// Get OID Value from type OID.
+			value := v.Value.(string)
+			subtree, err := s.getSubtree(value)
+			if err != nil {
+				continue
+			}
+			// Collect info to build logline from.
+			oidName := subtree[0].Node.Name
+			logFieldsMap["TrapName"] = &oidName
+			oidDescription := subtree[0].Node.Description
+			logFieldsMap["TrapDescription"] = &oidDescription
+
+		case snmp.OctetString:
+			value := v.Value.([]byte)
+			subtree, err := s.getSubtree(v.Name)
+			if err != nil {
+				continue
+			}
+			// Collect info to build logline.
+			octetOidName := subtree[0].Node.Name
+			octetDescription := subtree[0].Node.Description
+			octetValue := string(value)
+			logFieldsMap["TrapEventName"] = &octetOidName
+			logFieldsMap["TrapEventDescription"] = &octetDescription
+			logFieldsMap["TrapEventValue"] = &octetValue
+		case snmp.TimeTicks:
+			continue
+		default:
+			continue
+		}
+	}
+	// Add source addr to log lines
+	sourceAddr := addr.IP.String()
+	logFieldsMap["TrapSourceAddr"] = &sourceAddr
+	for k, v := range logFieldsMap {
+		logFields = append(logFields, zap.String(k, *v))
+	}
+	s.logger.Info(
+		"Received trap",
+		logFields...,
+	)
+}
+
 func main() {
-	// _, err := parser.ParseFile("CISCO-SMI.my")
 	gosmi.Init()
 	gosmi.AppendPath("./mibs")
-	_, err := gosmi.LoadModule("CISCO-VTP-MIB.my")
-	if err != nil {
-		panic(err)
+
+	files, _ := filepath.Glob("./mibs/*")
+
+	for _, filePath := range files {
+		_, fileName := path.Split(filePath)
+		_, err := gosmi.LoadModule(fileName)
+		if err != nil {
+			panic(err)
+		}
 	}
 	config := zap.NewProductionConfig()
 	config.OutputPaths = []string{"stdout"}
@@ -49,71 +126,5 @@ func main() {
 		}
 	}()
 	<-done
-	zapLogger.Sync()
-	fmt.Println("Server Stopped")
-}
-
-func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) {
-	var logFieldsMap = make(map[string]*string)
-	var logFields []zap.Field
-	for _, v := range packet.Variables {
-		switch v.Type {
-		case snmp.ObjectIdentifier:
-			// Get OID Value from type OID.
-			value := v.Value.(string)
-			oid, err := types.OidFromString(value)
-			if err != nil {
-				fmt.Println("shit")
-			}
-			node, err := gosmi.GetNodeByOID(oid)
-			if err != nil {
-				fmt.Println("shit 1")
-			}
-			subtree := node.GetSubtree()
-			// Collect info to build logline from.
-			oidName := subtree[0].Node.Name
-			logFieldsMap["TrapName"] = &oidName
-			oidDescription := subtree[0].Node.Description
-			logFieldsMap["TrapDescription"] = &oidDescription
-
-		case snmp.OctetString:
-			value := v.Value.([]byte)
-			oid, err := types.OidFromString(v.Name)
-			if err != nil {
-				s.logger.Error(
-					"Failed to get OID from octet variable name",
-					zap.Error(err),
-				)
-			}
-			node, err := gosmi.GetNodeByOID(oid)
-			if err != nil {
-				s.logger.Error(
-					"Failed to get smnp node by OID",
-					zap.Error(err),
-				)
-			}
-			subtree := node.GetSubtree()
-			// Collect info to build logline.
-			octetOidName := subtree[0].Node.Name
-			octetDescription := subtree[0].Node.Description
-			octetValue := string(value)
-			logFieldsMap["TrapEventName"] = &octetOidName
-			logFieldsMap["TrapEventDescription"] = &octetDescription
-			logFieldsMap["TrapEventValue"] = &octetValue
-		case snmp.TimeTicks:
-			continue
-		default:
-			continue
-		}
-	}
-	// Add source addr to log lines
-	sourceAddr := addr.IP.String()
-	logFieldsMap["TrapSourceAddr"] = &sourceAddr
-	for k, v := range logFieldsMap {
-		logFields = append(logFields, zap.String(k, *v))
-	}
-	s.logger.Info(
-		"Received trap",
-		logFields...,
-	)
+	_ = zapLogger.Sync()
 }
