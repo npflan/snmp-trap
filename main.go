@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"go.uber.org/zap"
 
@@ -34,13 +36,21 @@ func main() {
 		logger: zapLogger,
 	}
 
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
 	tl := snmp.NewTrapListener()
 	tl.OnNewTrap = svc.myTrapHandler
 	tl.Params = snmp.Default
-	err = tl.Listen("0.0.0.0:162")
-	if err != nil {
-		log.Panicf("error in listen: %s", err)
-	}
+	go func() {
+		err = tl.Listen("0.0.0.0:162")
+		if err != nil {
+			panic(err)
+		}
+	}()
+	<-done
+	zapLogger.Sync()
+	fmt.Println("Server Stopped")
 }
 
 func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) {
