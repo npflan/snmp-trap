@@ -107,7 +107,7 @@ func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) 
 		}
 	}
 	// Add source addr to log lines
-	sourceAddr := addr.String()
+	sourceAddr := addr.IP.String()
 	logFieldsMap["TrapSourceAddr"] = &sourceAddr
 	for k, v := range logFieldsMap {
 		logFields = append(logFields, zap.String(k, *v))
