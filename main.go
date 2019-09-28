@@ -24,8 +24,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	config := zap.NewProductionConfig()
+	config.OutputPaths = []string{"stdout"}
+	zapLogger, err := config.Build()
+	if err != nil {
+		panic(err)
+	}
 	svc := SnmpService{
-		logger: zap.NewExample(),
+		logger: zapLogger,
 	}
 
 	tl := snmp.NewTrapListener()
@@ -40,8 +46,6 @@ func main() {
 func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) {
 	var logFieldsMap = make(map[string]*string)
 	var logFields []zap.Field
-	sourceAddr := addr.String()
-	logFieldsMap["TrapSourceAddr"] = &sourceAddr
 	for _, v := range packet.Variables {
 		switch v.Type {
 		case snmp.ObjectIdentifier:
@@ -74,11 +78,12 @@ func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) 
 			node, err := gosmi.GetNodeByOID(oid)
 			if err != nil {
 				s.logger.Error(
-					"Failed to get OID from octet variable name",
+					"Failed to get smnp node by OID",
 					zap.Error(err),
 				)
 			}
 			subtree := node.GetSubtree()
+			// Collect info to build logline.
 			octetOidName := subtree[0].Node.Name
 			octetDescription := subtree[0].Node.Description
 			octetValue := string(value)
@@ -91,6 +96,9 @@ func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) 
 			continue
 		}
 	}
+	// Add source addr to log lines
+	sourceAddr := addr.String()
+	logFieldsMap["TrapSourceAddr"] = &sourceAddr
 	for k, v := range logFieldsMap {
 		logFields = append(logFields, zap.String(k, *v))
 	}
