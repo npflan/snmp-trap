@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -100,7 +101,8 @@ func main() {
 		_, fileName := path.Split(filePath)
 		_, err := gosmi.LoadModule(fileName)
 		if err != nil {
-			panic(err)
+			fmt.Printf("failed to load %s", fileName)
+			continue
 		}
 	}
 	config := zap.NewProductionConfig()
