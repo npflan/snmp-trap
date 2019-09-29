@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: snmp-trap
-        image: registry.npf.dk/snmp-trap:latest
+        image: registry.npf.dk/snmp-trap:master-f1ec783
         imagePullPolicy: Always
         ports:
         - containerPort: 162
