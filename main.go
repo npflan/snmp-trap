@@ -105,9 +105,7 @@ func main() {
 			continue
 		}
 	}
-	config := zap.NewProductionConfig()
-	config.OutputPaths = []string{"stdout"}
-	zapLogger, err := config.Build()
+	zapLogger, err := zap.NewProduction()
 	if err != nil {
 		panic(err)
 	}
