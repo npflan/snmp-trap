@@ -3,6 +3,7 @@ module github.com/npflan/snmp-trap
 go 1.12
 
 require (
+	github.com/blendle/zapdriver v1.1.6
 	github.com/geoffgarside/ber v0.0.0-20190912223231-00c19d63973f // indirect
 	github.com/k-sone/snmpgo v3.2.0+incompatible
 	github.com/sleepinggenius2/gosmi v0.3.0

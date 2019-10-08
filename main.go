@@ -10,9 +10,7 @@ import (
 	"syscall"
 
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 
-	"github.com/blendle/zapdriver"
 	"github.com/sleepinggenius2/gosmi"
 	"github.com/sleepinggenius2/gosmi/types"
 	snmp "github.com/soniah/gosnmp"
@@ -107,17 +105,11 @@ func main() {
 			continue
 		}
 	}
-	ecfg := zapdriver.NewProductionEncoderConfig()
-	encoder := zapcore.NewJSONEncoder(ecfg)
-	highPriority := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl >= zapcore.InfoLevel
-	})
-	consoleErrors := zapcore.Lock(os.Stderr)
-	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, consoleErrors, highPriority),
-	)
-	zapLogger := zap.New(core)
-	zap.RedirectStdLog(zapLogger)
+
+	zapLogger, err := zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
 	svc := SnmpService{
 		logger: zapLogger,
 	}
