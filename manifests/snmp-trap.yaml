@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: snmp-trap
-        image: registry.npf.dk/snmp-trap:e3ae3f5e86cc
+        image: npflan/snmp-trap:master-12506f2
         imagePullPolicy: Always
         ports:
         - containerPort: 162
@@ -29,7 +29,7 @@ spec:
             cpu: "1"
             memory: 2000M
       nodeSelector:
-        kubernetes.io/hostname: brigitte  
+        kubernetes.io/hostname: brigitte
 ---
 apiVersion: v1
 kind: Service
@@ -44,7 +44,7 @@ spec:
   clusterIP: 10.97.10.12
   type: NodePort
   ports:
-  - name: 
+  - name:
     port: 162
     nodePort: 31652
     protocol: UDP
