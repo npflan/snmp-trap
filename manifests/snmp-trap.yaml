@@ -13,6 +13,9 @@ spec:
       labels:
         app: snmp-trap
     spec:
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
       containers:
       - name: snmp-trap
         image: npflan/snmp-trap:master-c92081a
@@ -29,7 +32,7 @@ spec:
             cpu: "1"
             memory: 2000M
       nodeSelector:
-        kubernetes.io/hostname: brigitte
+        kubernetes.io/hostname: soldier76
 ---
 apiVersion: v1
 kind: Service
@@ -41,12 +44,12 @@ metadata:
   namespace: loki
 spec:
   externalTrafficPolicy: Local
-  clusterIP: 10.97.10.12
+  clusterIP: 10.97.0.20
   type: NodePort
   ports:
   - name:
     port: 162
-    nodePort: 31652
+    nodePort: 30162
     protocol: UDP
   selector:
     app: snmp-trap
