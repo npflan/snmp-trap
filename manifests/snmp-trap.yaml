@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: snmp-trap
-        image: npflan/snmp-trap:master-609f554
+        image: npflan/snmp-trap:master-c92081a
         imagePullPolicy: Always
         ports:
         - containerPort: 162
