@@ -73,6 +73,7 @@ func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) 
 			logFieldsMap["TrapEventName"] = &octetOidName
 			logFieldsMap["TrapEventDescription"] = &octetDescription
 			logFieldsMap["TrapEventValue"] = &octetValue
+			logFieldsMap["TrapEventOID"] = &v.Name
 		case snmp.TimeTicks:
 			continue
 		default:

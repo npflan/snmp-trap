@@ -18,7 +18,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: snmp-trap
-        image: npflan/snmp-trap:master-c92081a
+        image: npflan/snmp-trap:master-9c6f6a
         imagePullPolicy: Always
         ports:
         - containerPort: 162
