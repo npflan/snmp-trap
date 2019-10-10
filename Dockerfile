@@ -16,6 +16,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o traplogger -ldflags '-w -s
 # Build the smallest image possible
 FROM scratch AS runner
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /app/mibs/ mibs/
 COPY --from=builder /app/traplogger /traplogger
 
 ENTRYPOINT [ "/traplogger" ]
