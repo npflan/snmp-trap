@@ -7,6 +7,7 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"go.uber.org/zap"
@@ -70,6 +71,10 @@ func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) 
 			octetOidName := subtree[0].Node.Name
 			octetDescription := subtree[0].Node.Description
 			octetValue := string(value)
+			// Early return if the trap is a native vlan mismatch.
+			if strings.HasPrefix(octetValue, "Native VLAN mismatch") {
+				return
+			}
 			logFieldsMap["TrapEventName"] = &octetOidName
 			logFieldsMap["TrapEventDescription"] = &octetDescription
 			logFieldsMap["TrapEventValue"] = &octetValue
@@ -82,10 +87,18 @@ func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) 
 	}
 	// Add source addr to log lines
 	sourceAddr := addr.IP.String()
+	dnsNames, err := net.LookupAddr(sourceAddr)
+	if err != nil {
+		logFieldsMap["TrapSourceName"] = nil
+	} else {
+		dnsNamesStr := strings.Join(dnsNames, ",")
+		logFieldsMap["TrapSourceName"] = &dnsNamesStr
+	}
 	logFieldsMap["TrapSourceAddr"] = &sourceAddr
 	for k, v := range logFieldsMap {
 		logFields = append(logFields, zap.String(k, *v))
 	}
+
 	s.logger.Info(
 		"Received trap",
 		logFields...,
