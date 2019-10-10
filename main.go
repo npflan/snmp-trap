@@ -87,10 +87,9 @@ func (s *SnmpService) myTrapHandler(packet *snmp.SnmpPacket, addr *net.UDPAddr) 
 	}
 	// Add source addr to log lines
 	sourceAddr := addr.IP.String()
-	dnsNames, err := net.LookupAddr(sourceAddr)
-	if err != nil {
-		logFieldsMap["TrapSourceName"] = nil
-	} else {
+	dnsNames, _ := net.LookupAddr(sourceAddr)
+
+	if dnsNames != nil && len(dnsNames) > 0 {
 		dnsNamesStr := strings.Join(dnsNames, ",")
 		logFieldsMap["TrapSourceName"] = &dnsNamesStr
 	}

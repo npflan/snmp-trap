@@ -18,7 +18,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: snmp-trap
-        image: npflan/snmp-trap:reverse-lookup
+        image: npflan/snmp-trap:reverse-lookup-healthy
         imagePullPolicy: Always
         ports:
         - containerPort: 162
